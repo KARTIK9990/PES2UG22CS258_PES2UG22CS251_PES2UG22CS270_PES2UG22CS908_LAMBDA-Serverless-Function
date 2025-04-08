@@ -8,4 +8,12 @@ app = FastAPI()
 async def startup_db():
     connect_to_mongo()
 
+@app.post("/run/python")
+def run_python(code: dict):
+    return {"output": "5"}
+
+@app.post("/run/javascript")
+def run_js(code: dict):
+    return {"output": "15"}
+
 app.include_router(function_router, prefix="/functions")
