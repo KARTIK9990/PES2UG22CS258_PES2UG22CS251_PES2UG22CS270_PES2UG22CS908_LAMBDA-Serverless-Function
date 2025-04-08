@@ -10,6 +10,17 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,13 +30,22 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           cd serverless-platform
           pip install fastapi pymongo uvicorn python-dotenv
 
-      - name: Run test script or server
+      - name: Check Docker is installed and running
+        run: |
+          docker --version
+          docker ps -a || echo "Docker not running"
+
+      - name: Check MongoDB connectivity
+        run: |
+          sudo apt-get install -y mongodb-clients
+          mongosh --host localhost --eval "db.stats()"
+
+      - name: Run FastAPI app (dummy test)
         run: |
           cd serverless-platform
-          # Replace with actual test or uvicorn run command
-          echo "Tests or app launch would go here"
+          echo "FastAPI app or tests would run here"
