@@ -44,7 +44,25 @@ jobs:
         run: |
           docker exec $(docker ps -qf "ancestor=mongo:6.0") mongosh --eval "db.stats()"
 
-      - name: Run FastAPI app (dummy test)
+      - name: Run FastAPI app in background
         run: |
           cd serverless-platform
-          echo "FastAPI app or tests would run here"
+          uvicorn main:app --host 0.0.0.0 --port 8000 & 
+          echo $! > uvicorn.pid
+          sleep 5
+
+      - name: Test Python function execution
+        run: |
+          curl -X POST http://localhost:8000/run/python \
+          -H "Content-Type: application/json" \
+          -d '{"code": "print(2 + 3)"}'
+
+      - name: Test JavaScript function execution
+        run: |
+          curl -X POST http://localhost:8000/run/javascript \
+          -H "Content-Type: application/json" \
+          -d '{"code": "console.log(5 + 10);"}'
+
+      - name: Kill FastAPI server
+        run: |
+          kill -9 $(cat serverless-platform/uvicorn.pid) || echo "Already stopped"
