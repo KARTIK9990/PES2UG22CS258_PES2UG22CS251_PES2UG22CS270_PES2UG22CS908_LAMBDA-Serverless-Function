@@ -1,0 +1,56 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+
+    - name: Install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install fastapi uvicorn pymongo python-multipart
+
+    - name: Run basic health check (example)
+      run: |
+        echo "from pymongo import MongoClient; MongoClient('mongodb://localhost:27017').admin.command('ping')" > test_ping.py
+        python test_ping.py
+
+    - name: Lint with flake8 (optional)
+      run: |
+        pip install flake8
+        flake8 backend
+
+    - name: Test Docker Build (Python Runner)
+      run: |
+        docker build -t python-runner docker/python
+
+    - name: Test Docker Build (JavaScript Runner)
+      run: |
+        docker build -t js-runner docker/javascript
