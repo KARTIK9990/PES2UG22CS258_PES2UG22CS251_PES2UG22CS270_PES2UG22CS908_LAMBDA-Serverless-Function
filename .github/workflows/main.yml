@@ -42,8 +42,7 @@ jobs:
 
       - name: Check MongoDB connectivity
         run: |
-          sudo apt-get install -y mongodb-clients
-          mongosh --host localhost --eval "db.stats()"
+          docker exec $(docker ps -qf "ancestor=mongo:6.0") mongosh --eval "db.stats()"
 
       - name: Run FastAPI app (dummy test)
         run: |
