@@ -35,11 +35,6 @@ jobs:
           cd serverless-platform
           pip install fastapi pymongo uvicorn python-dotenv
 
-      - name: Check Docker is installed and running
-        run: |
-          docker --version
-          docker ps -a || echo "Docker not running"
-
       - name: Check MongoDB connectivity
         run: |
           docker exec $(docker ps -qf "ancestor=mongo:6.0") mongosh --eval "db.stats()"
@@ -47,24 +42,28 @@ jobs:
       - name: Run FastAPI app in background
         run: |
           cd serverless-platform
-          nohup uvicorn main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
-          echo $! > uvicorn.pid
-
-      - name: Run FastAPI app in background
-        run: |
-          cd serverless-platform
           nohup uvicorn backend.main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
           echo $! > uvicorn.pid
 
+          echo "Waiting for FastAPI to start..."
+          for i in {1..10}; do
+            if curl -s http://localhost:8000/docs > /dev/null; then
+              echo "FastAPI is up!"
+              break
+            fi
+            echo "Waiting..."
+            sleep 2
+          done
+
       - name: Test Python function execution
         run: |
-          curl -X POST http://localhost:8000/run/python \
+          curl -X POST http://localhost:8000/functions/run/python \
           -H "Content-Type: application/json" \
           -d '{"code": "print(2 + 3)"}'
 
       - name: Test JavaScript function execution
         run: |
-          curl -X POST http://localhost:8000/run/javascript \
+          curl -X POST http://localhost:8000/functions/run/javascript \
           -H "Content-Type: application/json" \
           -d '{"code": "console.log(5 + 10);"}'
 
